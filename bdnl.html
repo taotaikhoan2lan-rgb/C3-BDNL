@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRỤC - PHÂN TÍCH NỘI LỰC</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --panel-bg: #ffffff;
+            --border-color: #dce3e8;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --shaft-color: #34495e;
+            --load-color: #e74c3c;
+            --reaction-color: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* TOP BAR */
+        .top-bar {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+        .top-bar h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-right: 20px;
+        }
+        .btn-group { display: flex; gap: 8px; align-items: center; }
+        .btn {
+            background-color: #ecf0f1;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn:hover { background-color: #dfe6e9; }
+        .btn.primary { background-color: var(--primary); color: white; border-color: var(--primary-dark); }
+        .btn.primary:hover { background-color: var(--primary-dark); }
+        .btn.danger { background-color: var(--danger); color: white; }
+        .btn.warning { background-color: var(--warning); color: white; }
+        
+        .unit-selector {
+            background: #eef2f5;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* MAIN LAYOUT */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 250px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .sidebar-section { margin-bottom: 20px; }
+        .sidebar-section h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+        .input-group { margin-bottom: 10px; }
+        .input-group label { display: block; font-size: 12px; margin-bottom: 4px; color: var(--text-muted); }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .list-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+        .list-item:hover { background: #e9ecef; }
+        .list-item.active { border-color: var(--primary); background: #eef7fc; }
+        .list-item button {
+            background: none; border: none, color: var(--danger); cursor: pointer; font-weight: bold;
+        }
+
+        /* CENTER VIEW */
+        .center-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .canvas-container {
+            flex: 1;
+            background-color: #fdfdfd;
+            background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 20px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        #svgCanvas { width: 100%; height: 100%; cursor: grab; }
+        #svgCanvas:active { cursor: grabbing; }
+        
+        .diagram-section {
+            height: 300px;
+            background-color: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+        #svgDiagram { width: 100%; flex: 1; }
+
+        /* RIGHT PANEL */
+        .right-panel {
+            width: 300px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            padding: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .panel-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: var(--primary-dark); }
+        
+        /* MODAL & OVERLAYS */
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+        }
+        .math-display {
+            background: #f8f9fa;
+            border: 1px dashed var(--border-color);
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .result-table th, .result-table td {
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            text-align: center;
+        }
+        .result-table th { background: #ecf0f1; }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div style="display: flex; align-items: center;">
+            <h1>TRỤC - PHÂN TÍCH NỘI LỰC</h1>
+            <div class="btn-group">
+                <button class="btn" onclick="newProject()">Tạo mới</button>
+                <button class="btn" onclick="document.getElementById('fileInput').click()">Mở</button>
+                <input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadProject(event)">
+                <button class="btn" onclick="saveProject()">Lưu</button>
+                <button class="btn" onclick="exportCSV()">Xuất CSV</button>
+            </div>
+        </div>
+        <div class="btn-group">
+            <div class="unit-selector">
+                Đơn vị: 
+                <select id="unitSystem" onchange="changeUnit()">
+                    <option value="mm">mm - N - N.mm</option>
+                    <option value="m">m - kN - kN.m</option>
+                </select>
+            </div>
+            <button class="btn warning" onclick="toggleStudyMode()">Chế độ học tập</button>
+            <button class="btn primary" onclick="calculate()">TÍNH TOÁN</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>Hình học Trục</h3>
+                <div id="segmentList"></div>
+                <div class="input-group" style="display:flex; gap:5px; margin-top:10px;">
+                    <input type="number" id="newSegLen" placeholder="Chiều dài (mm)">
+                    <button class="btn" onclick="addSegment()">+</button>
+                </div>
+                <div style="margin-top:10px; font-size:12px; text-align:right; color:var(--text-muted);">
+                    Tổng L: <span id="totalLen">0</span> mm
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Gối đỡ</h3>
+                <div class="input-group">
+                    <label>Tên gối</label>
+                    <select id="supName">
+                        <option value="A">A</option><option value="B">B</option>
+                        <option value="C">C</option><option value="D">D</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Vị trí (mm)</label>
+                    <input type="number" id="supPos" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Loại</label>
+                    <select id="supType">
+                        <option value="fixed">Cố định (X,Y,Z)</option>
+                        <option value="roller_y">Trụ Y (X,Z)</option>
+                        <option value="roller_z">Trụ Z (X,Y)</option>
+                    </select>
+                </div>
+                <button class="btn" style="width:100%" onclick="addSupport()">Thêm gối</button>
+                <div id="supportList" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Tải trọng</h3>
+                <div class="input-group">
+                    <label>Loại</label>
+                    <select id="loadType">
+                        <option value="Fy">Lực Fy (N)</option>
+                        <option value="Fz">Lực Fz (N)</option>
+                        <option value="Fx">Lực dọc Fx (N)</option>
+                        <option value="Mz">Mômen Mz (N.mm)</option>
+                        <option value="My">Mômen My (N.mm)</option>
+                        <option value="Mx">Mômen Mx (N.mm)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Vị trí (mm)</label>
+                    <input type="number" id="loadPos" value="59">
+                </div>
+                <div class="input-group">
+                    <label>Giá trị</label>
+                    <input type="number" id="loadVal" value="-491">
+                </div>
+                <button class="btn" style="width:100%" onclick="addLoad()">Thêm tải</button>
+                <div id="loadList" style="margin-top:10px;"></div>
+            </div>
+        </div>
+
+        <!-- CENTER VIEW -->
+        <div class="center-view">
+            <div class="canvas-container">
+                <svg id="svgCanvas"></svg>
+                <div class="tooltip" id="canvasTooltip"></div>
+            </div>
+            
+            <div class="diagram-section">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('Qy')">Qy</div>
+                    <div class="tab" onclick="switchTab('Qz')">Qz</div>
+                    <div class="tab" onclick="switchTab('Fx')">Fx</div>
+                    <div class="tab" onclick="switchTab('Mz')">Mz</div>
+                    <div class="tab" onclick="switchTab('My')">My</div>
+                    <div class="tab" onclick="switchTab('Mx')">Mx</div>
+                    <div class="tab" onclick="switchTab('Msum')">M tổng hợp</div>
+                </div>
+                <svg id="svgDiagram"></svg>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="right-panel">
+            <div class="panel-title">KẾT QUẢ & PHÂN TÍCH</div>
+            
+            <div id="warningContainer"></div>
+
+            <div id="reactionsPanel" style="margin-bottom: 20px;">
+                <h3 style="font-size:14px; margin-bottom:10px;">Phản lực gối</h3>
+                <div id="reactionsContent" style="font-size: 13px; color: var(--text-muted);">
+                    Chưa tính toán.
+                </div>
+            </div>
+
+            <div id="dangerousSectionPanel" style="margin-bottom: 20px;">
+                <h3 style="font-size:14px; margin-bottom:10px;">Tiết diện nguy hiểm</h3>
+                <div id="dangerousContent" style="font-size: 13px; color: var(--text-muted);">
+                    Chưa xác định.
+                </div>
+            </div>
+
+            <div id="studyModePanel" style="display:none; margin-bottom: 20px;">
+                <h3 style="font-size:14px; margin-bottom:10px;">Các bước giải (Study Mode)</h3>
+                <div class="math-display" id="studyContent"></div>
+            </div>
+
+            <div id="tablePanel">
+                <h3 style="font-size:14px; margin-bottom:10px;">Bảng nội lực</h3>
+                <div style="overflow-y:auto; max-height: 200px;">
+                    <table class="result-table" id="resultTable">
+                        <thead>
+                            <tr>
+                                <th>x (mm)</th><th>Qy</th><th>Qz</th><th>Mz</th><th>My</th><th>Mx</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== STATE MANAGEMENT =====
+        let state = {
+            segments: [{id: 1, len: 118}],
+            supports: [
+                {id: 's1', name: 'A', x: 0, type: 'fixed'},
+                {id: 's2', name: 'B', x: 118, type: 'roller_y'}
+            ],
+            loads: [
+                {id: 'l1', type: 'Fy', x: 59, val: -491}
+            ],
+            results: null,
+            selectedObject: null,
+            activeTab: 'Qy',
+            studyMode: false,
+            scale: 1,
+            pan: {x: 0, y: 0}
+        };
+
+        // ===== UTILITY FUNCTIONS =====
+        const getTotalLength = () => state.segments.reduce((sum, s) => sum + s.len, 0);
+        const uuid = () => Math.random().toString(36).substr(2, 9);
+
+        // ===== UI RENDERING =====
+        function renderSidebar() {
+            // Segments
+            const segList = document.getElementById('segmentList');
+            segList.innerHTML = '';
+            state.segments.forEach((seg, i) => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `<span>Đoạn ${i+1}: <input type="number" value="${seg.len}" style="width:60px; padding:2px;" onchange="updateSegment(${i}, this.value)"> mm</span>
+                                 <button onclick="deleteSegment(${i})">X</button>`;
+                segList.appendChild(div);
+            });
+            document.getElementById('totalLen').innerText = getTotalLength();
+
+            // Supports
+            const supList = document.getElementById('supportList');
+            supList.innerHTML = '';
+            state.supports.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'list-item' + (state.selectedObject === s.id ? ' active' : '');
+                div.innerHTML = `<span onclick="selectObject('${s.id}')">${s.name} @ ${s.x}mm (${s.type})</span>
+                                 <button onclick="deleteSupport('${s.id}')">X</button>`;
+                supList.appendChild(div);
+            });
+
+            // Loads
+            const loadList = document.getElementById('loadList');
+            loadList.innerHTML = '';
+            state.loads.forEach(l => {
+                const div = document.createElement('div');
+                div.className = 'list-item' + (state.selectedObject === l.id ? ' active' : '');
+                div.innerHTML = `<span onclick="selectObject('${l.id}')">${l.type} = ${l.val} @ ${l.x}mm</span>
+                                 <button onclick="deleteLoad('${l.id}')">X</button>`;
+                loadList.appendChild(div);
+            });
+        }
+
+        function updateSegment(index, val) {
+            state.segments[index].len = Math.max(0, parseFloat(val) || 0);
+            renderSidebar();
+            drawCanvas();
+        }
+        function addSegment() {
+            const len = parseFloat(document.getElementById('newSegLen').value);
+            if(len > 0) {
+                state.segments.push({id: uuid(), len});
+                document.getElementById('newSegLen').value = '';
+                renderSidebar();
+                drawCanvas();
+            }
+        }
+        function deleteSegment(i) {
+            state.segments.splice(i, 1);
+            renderSidebar();
+            drawCanvas();
+        }
+
+        function addSupport() {
+            const name = document.getElementById('supName').value;
+            const x = parseFloat(document.getElementById('supPos').value);
+            const type = document.getElementById('supType').value;
+            if(!isNaN(x)) {
+                state.supports.push({id: uuid(), name, x, type});
+                renderSidebar();
+                drawCanvas();
+            }
+        }
+        function deleteSupport(id) {
+            state.supports = state.supports.filter(s => s.id !== id);
+            renderSidebar();
+            drawCanvas();
+        }
+
+        function addLoad() {
+            const type = document.getElementById('loadType').value;
+            const x = parseFloat(document.getElementById('loadPos').value);
+            const val = parseFloat(document.getElementById('loadVal').value);
+            if(!isNaN(x) && !isNaN(val)) {
+                state.loads.push({id: uuid(), type, x, val});
+                renderSidebar();
+                drawCanvas();
+            }
+        }
+        function deleteLoad(id) {
+            state.loads = state.loads.filter(l => l.id !== id);
+            renderSidebar();
+            drawCanvas();
+        }
+
+        function selectObject(id) {
+            state.selectedObject = id;
+            renderSidebar();
+            drawCanvas();
+        }
+
+        // ===== SVG DRAWING: SHAFT & LOADS =====
+        function drawCanvas() {
+            const svg = document.getElementById('svgCanvas');
+            const totalLen = getTotalLength();
+            const width = svg.clientWidth;
+            const height = svg.clientHeight;
+            
+            svg.innerHTML = '';
+            if(totalLen === 0) return;
+
+            const margin = 80;
+            const scale = (width - 2 * margin) / totalLen;
+            const cy = height / 2;
+
+            // Draw Shaft
+            const shaft = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            shaft.setAttribute("x", margin);
+            shaft.setAttribute("y", cy - 15);
+            shaft.setAttribute("width", totalLen * scale);
+            shaft.setAttribute("height", 30);
+            shaft.setAttribute("fill", "#ecf0f1");
+            shaft.setAttribute("stroke", "var(--shaft-color)");
+            shaft.setAttribute("stroke-width", "2");
+            svg.appendChild(shaft);
+
+            // Draw Segments dimensions
+            let currentX = margin;
+            state.segments.forEach((seg, i) => {
+                const w = seg.len * scale;
+                // dimension line
+                const dim = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                dim.setAttribute("x1", currentX);
+                dim.setAttribute("y1", cy + 40);
+                dim.setAttribute("x2", currentX + w);
+                dim.setAttribute("y2", cy + 40);
+                dim.setAttribute("stroke", "#7f8c8d");
+                dim.setAttribute("stroke-width", "1");
+                svg.appendChild(dim);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", currentX + w/2);
+                text.setAttribute("y", cy + 55);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("font-size", "12");
+                text.setAttribute("fill", "#7f8c8d");
+                text.textContent = seg.len;
+                svg.appendChild(text);
+
+                currentX += w;
+            });
+
+            // Draw Supports
+            state.supports.forEach(s => {
+                const sx = margin + s.x * scale;
+                const isSelected = state.selectedObject === s.id;
+                const color = isSelected ? "var(--primary)" : "var(--reaction-color)";
+                
+                const tri = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                tri.setAttribute("points", `${sx-15},${cy+15} ${sx+15},${cy+15} ${sx},${cy+35}`);
+                tri.setAttribute("fill", color);
+                tri.setAttribute("stroke", "var(--shaft-color)");
+                tri.style.cursor = "pointer";
+                tri.addEventListener("click", () => selectObject(s.id));
+                svg.appendChild(tri);
+
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", sx);
+                txt.setAttribute("y", cy + 50);
+                txt.setAttribute("text-anchor", "middle");
+                txt.setAttribute("font-size", "14");
+                txt.setAttribute("font-weight", "bold");
+                txt.setAttribute("fill", color);
+                txt.textContent = s.name;
+                svg.appendChild(txt);
+            });
+
+            // Draw Loads
+            state.loads.forEach(l => {
+                const lx = margin + l.x * scale;
+                const isSelected = state.selectedObject === l.id;
+                const color = isSelected ? "var(--primary)" : "var(--load-color)";
+                
+                if(l.type.startsWith('F')) {
+                    const isVertical = (l.type === 'Fy' || l.type === 'Fz'); // Visualize Fy/Fz vertically
+                    if(isVertical) {
+                        const dir = l.val > 0 ? -1 : 1; // Positive is UP
+                        const startY = cy + (dir * 60);
+                        const endY = cy + (dir * 15);
+                        
+                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        line.setAttribute("x1", lx); line.setAttribute("y1", startY);
+                        line.setAttribute("x2", lx); line.setAttribute("y2", endY);
+                        line.setAttribute("stroke", color);
+                        line.setAttribute("stroke-width", "2");
+                        line.style.cursor = "pointer";
+                        line.addEventListener("click", () => selectObject(l.id));
+                        svg.appendChild(line);
+
+                        // Arrow head
+                        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                        arrow.setAttribute("points", `${lx-5},${endY-dir*5} ${lx+5},${endY-dir*5} ${lx},${endY}`);
+                        arrow.setAttribute("fill", color);
+                        svg.appendChild(arrow);
+
+                        const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        txt.setAttribute("x", lx + 10);
+                        txt.setAttribute("y", startY + (dir > 0 ? 15 : 0));
+                        txt.setAttribute("font-size", "12");
+                        txt.setAttribute("fill", color);
+                        txt.textContent = `${l.type}=${l.val}`;
+                        svg.appendChild(txt);
+                    }
+                }
+            });
+
+            // Draw Coord System
+            const coordX = 40, coordY = height - 60;
+            const drawArrow = (x1,y1,x2,y2,color,label) => {
+                const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                l.setAttribute("x1",x1); l.setAttribute("y1",y1); l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+                l.setAttribute("stroke",color); l.setAttribute("stroke-width","2");
+                svg.appendChild(l);
+                const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                t.setAttribute("x",x2+5); t.setAttribute("y",y2+5); t.setAttribute("fill",color); t.textContent = label;
+                svg.appendChild(t);
+            };
+            drawArrow(coordX, coordY, coordX+30, coordY, "#e74c3c", "X");
+            drawArrow(coordX, coordY, coordX, coordY-30, "#2ecc71", "Y");
+            drawArrow(coordX, coordY, coordX-15, coordY+15, "#f39c12", "Z");
+        }
+
+        // ===== SOLVER: REACTIONS & INTERNAL FORCES =====
+        function calculate() {
+            const L = getTotalLength();
+            const supports = state.supports;
+            const loads = state.loads;
+
+            // Validation
+            if(supports.length < 2) {
+                showWarning("Cần ít nhất 2 gối đỡ để giải tĩnh học!");
+                return;
+            }
+            if(supports.length > 2) {
+                showWarning("Hệ có hơn 2 gối đỡ. Đây là hệ siêu tĩnh, solver hiện tại chỉ hỗ trợ tĩnh định (2 gối).");
+                // We will still try to solve assuming 2 main supports
+            }
+
+            // Filter loads valid
+            const validLoads = loads.filter(l => l.x >= 0 && l.x <= L);
+            
+            // 1. Calculate Reactions (Assuming 2D beam in XOY and XOZ)
+            // Sum Fy = 0, Sum Mz(A) = 0 -> RyB, RyA
+            // Sum Fz = 0, Sum My(A) = 0 -> RzB, RzA
+            
+            let supA = supports[0];
+            let supB = supports[1];
+            
+            let RyA = 0, RyB = 0, RzA = 0, RzB = 0, RxA = 0;
+            
+            // Y-Z Plane (Bending in XOY -> Mz)
+            let sumFy = validLoads.filter(l=>l.type==='Fy').reduce((s,l)=>s+l.val,0);
+            let sumMzA = validLoads.filter(l=>l.type==='Fy').reduce((s,l)=>s+(l.val * (l.x - supA.x)),0);
+            
+            if(supB.x !== supA.x) {
+                RyB = -sumMzA / (supB.x - supA.x);
+                RyA = -sumFy - RyB;
+            }
+
+            // X-Z Plane (Bending in XOZ -> My)
+            let sumFz = validLoads.filter(l=>l.type==='Fz').reduce((s,l)=>s+l.val,0);
+            let sumMyA = validLoads.filter(l=>l.type==='Fz').reduce((s,l)=>s+(l.val * (l.x - supA.x)),0);
+            
+            if(supB.x !== supA.x) {
+                RzB = -sumMyA / (supB.x - supA.x);
+                RzA = -sumFz - RzB;
+            }
+
+            // Axial
+            let sumFx = validLoads.filter(l=>l.type==='Fx').reduce((s,l)=>s+l.val,0);
+            RxA = -sumFx; // Assuming A takes all axial
+
+            let reactions = {
+                A: {Rx: RxA, Ry: RyA, Rz: RzA},
+                B: {Rx: 0, Ry: RyB, Rz: RzB}
+            };
+
+            // 2. Generate Points
+            let points = [0, L];
+            validLoads.forEach(l => points.push(l.x));
+            supports.forEach(s => points.push(s.x));
+            points = [...new Set(points)].sort((a,b) => a-b);
+
+            // 3. Calculate Internal Forces at points
+            let results = { points: [], maxMsum: 0, maxMsumX: 0 };
+            
+            points.forEach(x => {
+                let Qy = 0, Qz = 0, Fx = 0;
+                let Mz = 0, My = 0, Mx = 0;
+                
+                // Sum forces left of x
+                if(x > supA.x) { Qy += reactions.A.Ry; Qz += reactions.A.Rz; Fx += reactions.A.Rx; }
+                if(x > supB.x) { Qy += reactions.B.Ry; Qz += reactions.B.Rz; }
+                
+                validLoads.forEach(l => {
+                    if(l.x < x) {
+                        if(l.type === 'Fy') Qy += l.val;
+                        if(l.type === 'Fz') Qz += l.val;
+                        if(l.type === 'Fx') Fx += l.val;
+                    }
+                });
+
+                // Sum moments left of x
+                if(x > supA.x) {
+                    Mz += reactions.A.Ry * (x - supA.x);
+                    My += reactions.A.Rz * (x - supA.x); // Moment from Z force
+                }
+                if(x > supB.x) {
+                    Mz += reactions.B.Ry * (x - supB.x);
+                    My += reactions.B.Rz * (x - supB.x);
+                }
+                
+                validLoads.forEach(l => {
+                    if(l.x < x) {
+                        if(l.type === 'Fy') Mz += l.val * (x - l.x);
+                        if(l.type === 'Fz') My += l.val * (x - l.x); // Z force causes My
+                        if(l.type === 'Mz') Mz += l.val;
+                        if(l.type === 'My') My += l.val;
+                        if(l.type === 'Mx') Mx += l.val;
+                    }
+                });
+
+                let Msum = Math.sqrt(Mz*Mz + My*My);
+                if(Msum > results.maxMsum) {
+                    results.maxMsum = Msum;
+                    results.maxMsumX = x;
+                }
+
+                results.points.push({x, Qy, Qz, Fx, Mz, My, Mx, Msum});
+            });
+
+            state.results = { reactions, ...results, validLoads, supA, supB };
+            
+            // UI Updates
+            renderResults();
+            if(state.studyMode) renderStudyMode();
+            drawDiagram();
+        }
+
+        // ===== SVG DRAWING: DIAGRAMS =====
+        function drawDiagram() {
+            const svg = document.getElementById('svgDiagram');
+            svg.innerHTML = '';
+            if(!state.results) return;
+
+            const width = svg.clientWidth;
+            const height = svg.clientHeight;
+            const margin = 50;
+            const L = getTotalLength();
+            
+            const tab = state.activeTab;
+            const data = state.results.points.map(p => p[tab]);
+            
+            let maxV = Math.max(...data, 1);
+            let minV = Math.min(...data, -1);
+            if(maxV === minV) { maxV = 1; minV = -1; }
+            
+            const scaleX = (width - 2 * margin) / L;
+            const scaleY = (height - 40) / (maxV - minV);
+            const zeroY = height - 20 - (-minV * scaleY);
+
+            // Zero line
+            const zLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            zLine.setAttribute("x1", margin); zLine.setAttribute("y1", zeroY);
+            zLine.setAttribute("x2", width - margin); zLine.setAttribute("y2", zeroY);
+            zLine.setAttribute("stroke", "#bdc3c7"); zLine.setAttribute("stroke-dasharray", "4");
+            svg.appendChild(zLine);
+
+            // Path
+            let d = `M ${margin} ${zeroY}`;
+            state.results.points.forEach(p => {
+                const px = margin + p.x * scaleX;
+                const py = zeroY - p[tab] * scaleY;
+                d += ` L ${px} ${py}`;
+            });
+            d += ` L ${margin + L*scaleX} ${zeroY} Z`;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", d);
+            path.setAttribute("fill", tab.startsWith('M') ? "rgba(243, 156, 18, 0.3)" : "rgba(231, 76, 60, 0.3)");
+            path.setAttribute("stroke", tab.startsWith('M') ? "#f39c12" : "#e74c3c");
+            path.setAttribute("stroke-width", "2");
+            svg.appendChild(path);
+
+            // Labels & Crosshair
+            const tooltip = document.getElementById('canvasTooltip');
+            svg.addEventListener("mousemove", (e) => {
+                const rect = svg.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const xVal = (mx - margin) / scaleX;
+                
+                if(xVal >= 0 && xVal <= L) {
+                    // Find nearest point
+                    let nearest = state.results.points[0];
+                    let minDist = Math.abs(xVal - nearest.x);
+                    state.results.points.forEach(p => {
+                        let dist = Math.abs(xVal - p.x);
+                        if(dist < minDist) { minDist = dist; nearest = p; }
+                    });
+
+                    // Draw Crosshair
+                    let existingCH = svg.querySelector('.crosshair');
+                    if(existingCH) existingCH.remove();
+                    
+                    const ch = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    ch.setAttribute("class", "crosshair");
+                    ch.setAttribute("x1", margin + nearest.x * scaleX);
+                    ch.setAttribute("y1", 10);
+                    ch.setAttribute("x2", margin + nearest.x * scaleX);
+                    ch.setAttribute("y2", height - 20);
+                    ch.setAttribute("stroke", "#3498db");
+                    ch.setAttribute("stroke-dasharray", "3");
+                    svg.appendChild(ch);
+
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.clientX + 15) + 'px';
+                    tooltip.style.top = (e.clientY - 40) + 'px';
+                    tooltip.innerHTML = `x = ${nearest.x.toFixed(1)} mm<br>
+                                         ${tab} = ${nearest[tab].toFixed(2)}<br>
+                                         Msum = ${nearest.Msum.toFixed(2)}`;
+                }
+            });
+            svg.addEventListener("mouseleave", () => tooltip.style.display = 'none');
+        }
+
+        function switchTab(tab) {
+            state.activeTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            drawDiagram();
+        }
+
+        // ===== UI RENDERING: RIGHT PANEL =====
+        function renderResults() {
+            const r = state.results;
+            let html = '';
+            r.supports.forEach(s => {
+                const react = r.reactions[s.name] || {Rx:0, Ry:0, Rz:0};
+                html += `<b>${s.name}:</b> Rx=${react.Rx.toFixed(1)}, Ry=${react.Ry.toFixed(1)}, Rz=${react.Rz.toFixed(1)}<br>`;
+            });
+            document.getElementById('reactionsContent').innerHTML = html;
+
+            // Dangerous Section
+            document.getElementById('dangerousContent').innerHTML = `
+                Vị trí: x = <b>${r.maxMsumX.toFixed(1)} mm</b><br>
+                Mx = ${r.points.find(p=>p.x===r.maxMsumX).Mx.toFixed(1)}<br>
+                My = ${r.points.find(p=>p.x===r.maxMsumX).My.toFixed(1)}<br>
+                Mz = ${r.points.find(p=>p.x===r.maxMsumX).Mz.toFixed(1)}<br>
+                <b>M tổng hợp = ${r.maxMsum.toFixed(1)} N.mm</b>
+            `;
+
+            // Table
+            const tbody = document.querySelector('#resultTable tbody');
+            tbody.innerHTML = '';
+            r.points.forEach(p => {
+                tbody.innerHTML += `<tr>
+                    <td>${p.x.toFixed(1)}</td>
+                    <td>${p.Qy.toFixed(1)}</td>
+                    <td>${p.Qz.toFixed(1)}</td>
+                    <td>${p.Mz.toFixed(1)}</td>
+                    <td>${p.My.toFixed(1)}</td>
+                    <td>${p.Mx.toFixed(1)}</td>
+                </tr>`;
+            });
+            
+            document.getElementById('warningContainer').innerHTML = '';
+        }
+
+        function renderStudyMode() {
+            const r = state.results;
+            if(!r) return;
+            let html = `1. Tải trọng: ${r.validLoads.length} lực<br>`;
+            html += `2. Gối A @ ${r.supA.x}, Gối B @ ${r.supB.x}<br>`;
+            html += `3. Phương trình cân bằng XOY:<br>`;
+            let sumFy = r.validLoads.filter(l=>l.type==='Fy').reduce((s,l)=>s+l.val,0);
+            let sumMzA = r.validLoads.filter(l=>l.type==='Fy').reduce((s,l)=>s+(l.val * (l.x - r.supA.x)),0);
+            html += `   ΣFy = ${sumFy.toFixed(1)} + RyA + RyB = 0<br>`;
+            html += `   ΣMz(A) = ${sumMzA.toFixed(1)} + RyB*${(r.supB.x-r.supA.x).toFixed(1)} = 0<br>`;
+            html += `   => RyB = ${r.reactions.B.Ry.toFixed(1)}<br>`;
+            html += `   => RyA = ${r.reactions.A.Ry.toFixed(1)}<br>`;
+            html += `4. Tính Qy, Mz tại các điểm đặc biệt.<br>`;
+            document.getElementById('studyContent').innerHTML = html;
+        }
+
+        function toggleStudyMode() {
+            state.studyMode = !state.studyMode;
+            document.getElementById('studyModePanel').style.display = state.studyMode ? 'block' : 'none';
+            if(state.studyMode && state.results) renderStudyMode();
+        }
+
+        function showWarning(msg) {
+            document.getElementById('warningContainer').innerHTML = `<div class="warning-box">⚠ ${msg}</div>`;
+        }
+
+        function newProject() {
+            state = {
+                segments: [{id: 1, len: 100}],
+                supports: [],
+                loads: [],
+                results: null,
+                selectedObject: null,
+                activeTab: 'Qy',
+                studyMode: state.studyMode,
+                scale: 1, pan: {x: 0, y: 0}
+            };
+            renderSidebar();
+            drawCanvas();
+            document.getElementById('reactionsContent').innerText = 'Chưa tính toán.';
+            document.getElementById('dangerousContent').innerText = 'Chưa xác định.';
+            document.querySelector('#resultTable tbody').innerHTML = '';
+            drawDiagram();
+        }
+
+        function saveProject() {
+            const dataStr = JSON.stringify(state);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "shaft_project.json";
+            a.click();
+        }
+
+        function loadProject(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = e => {
+                Object.assign(state, JSON.parse(e.target.result));
+                state.selectedObject = null;
+                renderSidebar();
+                drawCanvas();
+                if(state.results) {
+                    renderResults();
+                    drawDiagram();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportCSV() {
+            if(!state.results) return alert("Vui lòng tính toán trước!");
+            let csv = "x (mm),Qy (N),Qz (N),Fx (N),Mz (N.mm),My (N.mm),Mx (N.mm),Msum (N.mm)\n";
+            state.results.points.forEach(p => {
+                csv += `${p.x},${p.Qy},${p.Qz},${p.Fx},${p.Mz},${p.My},${p.Mx},${p.Msum}\n`;
+            });
+            const blob = new Blob([csv], {type: "text/csv"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "internal_forces.csv";
+            a.click();
+        }
+
+        function changeUnit() {
+            // Conceptual: In a real app, this scales all values.
+            // For this educational tool, we just change the labels.
+            alert("Hệ đơn vị đã đổi. Hãy nhập lại dữ liệu theo hệ đơn vị mới.");
+        }
+
+        // ===== INIT =====
+        window.addEventListener('resize', () => {
+            drawCanvas();
+            if(state.results) drawDiagram();
+        });
+        
+        // Setup default example
+        renderSidebar();
+        drawCanvas();
+        calculate();
+
+    </script>
+</body>
+</html>
